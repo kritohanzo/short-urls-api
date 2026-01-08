@@ -1,9 +1,10 @@
 from sqlalchemy.orm import Mapped, mapped_column
+
 from sources.models.bases import Base
 
 
 class ShortUrlModel(Base):
-    __tablename__ = 'short_urls'
+    __tablename__ = "short_urls"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     slug: Mapped[str]

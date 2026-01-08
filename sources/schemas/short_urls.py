@@ -8,4 +8,3 @@ class CreateShortUrlRequestSchema(BaseModel):
 class ShortUrlSchema(BaseModel):
     source_url: str
     short_url: str
-

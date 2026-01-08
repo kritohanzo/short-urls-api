@@ -9,4 +9,4 @@ class ShortUrlDomain:
 
     @property
     def short_url(self) -> str:
-        return f'http://localhost:8000/short-urls/{self.slug}/'
+        return f"http://localhost:8000/short-urls/{self.slug}/"

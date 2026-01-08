@@ -1,9 +1,11 @@
-from sources.repositories.short_urls import ShortUrlRepository
-from sqlalchemy.ext.asyncio import AsyncSession
-from sources.domains.short_urls import ShortUrlDomain
+from random import choice
 from string import ascii_letters, digits
 from typing import Final
-from random import choice
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from sources.domains.short_urls import ShortUrlDomain
+from sources.repositories.short_urls import ShortUrlRepository
 
 
 class ShortUrlService:
@@ -16,7 +18,7 @@ class ShortUrlService:
     async def get(self, slug: str) -> ShortUrlDomain:
         domain = await self.repository.get(slug=slug)
         return domain
-        
+
     async def all(self) -> list[ShortUrlDomain]:
         domains = await self.repository.all()
         return domains
@@ -28,5 +30,4 @@ class ShortUrlService:
         return domain
 
     async def _generate_slug(self) -> str:
-        return ''.join([choice(self.SLUG_CHARS) for _ in range(self.SLUG_LENGHT)])
-    
+        return "".join([choice(self.SLUG_CHARS) for _ in range(self.SLUG_LENGHT)])

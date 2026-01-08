@@ -1,7 +1,9 @@
-from sources.models.short_urls import ShortUrlModel
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from sources.domains.short_urls import ShortUrlDomain
+from sources.models.short_urls import ShortUrlModel
+
 
 class ShortUrlRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -20,21 +22,21 @@ class ShortUrlRepository:
         models = execute.scalars()
         domains = [await self._to_domain(model=model) for model in models]
         return domains
-    
+
     async def save(self, domain: ShortUrlDomain) -> ShortUrlDomain:
         model = await self._from_domain(domain=domain)
         self.session.add(instance=model)
         await self.session.commit()
         domain.id = model.id
         return domain
-    
-    async def _to_domain(self, model: ShortUrlModel) -> ShortUrlDomain: 
+
+    async def _to_domain(self, model: ShortUrlModel) -> ShortUrlDomain:
         return ShortUrlDomain(
             id=model.id,
             slug=model.slug,
             source_url=model.source_url,
         )
-    
+
     async def _from_domain(self, domain: ShortUrlDomain) -> ShortUrlModel:
         return ShortUrlModel(
             id=domain.id,
