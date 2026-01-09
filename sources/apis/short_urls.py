@@ -1,7 +1,8 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import RedirectResponse
 
 from sources.apis.dependencies import Session
+from sources.exceptions.short_urls import GenerateSlugException
 from sources.schemas.short_urls import CreateShortUrlRequestSchema, ShortUrlSchema
 from sources.services.short_urls import ShortUrlService
 
@@ -11,7 +12,7 @@ router = APIRouter()
 @router.get(path="/short-urls/{slug}/", summary="Короткие URL", description="Перенаправление по SLUG")
 async def redirect_by_slug(slug: str, session: Session):
     service = ShortUrlService(session=session)
-    domain = await service.get(slug=slug)
+    domain = await service.get(slug=slug, as_visitor=True)
     response = RedirectResponse(url=domain.source_url, status_code=status.HTTP_302_FOUND)
     return response
 
@@ -20,13 +21,35 @@ async def redirect_by_slug(slug: str, session: Session):
 async def get_short_urls(session: Session) -> list[ShortUrlSchema]:
     service = ShortUrlService(session=session)
     domains = await service.all()
-    schemas = [ShortUrlSchema(source_url=domain.source_url, short_url=domain.short_url) for domain in domains]
+
+    schemas = [
+        ShortUrlSchema(
+            source_url=domain.source_url,
+            short_url=domain.short_url,
+            visitors=domain.visitors,
+        )
+        for domain in domains
+    ]
+
     return schemas
 
 
 @router.post(path="/short-urls/", summary="Короткие URL", description="Создание короткого URL")
 async def create_short_url(data: CreateShortUrlRequestSchema, session: Session) -> ShortUrlSchema:
     service = ShortUrlService(session=session)
-    domain = await service.create(source_url=data.source_url)
-    schema = ShortUrlSchema(short_url=domain.short_url, source_url=domain.source_url)
+
+    try:
+        domain = await service.create(source_url=data.source_url)
+    except GenerateSlugException as exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=exception.message,
+        )
+
+    schema = ShortUrlSchema(
+        short_url=domain.short_url,
+        source_url=domain.source_url,
+        visitors=domain.visitors,
+    )
+
     return schema
