@@ -5,11 +5,8 @@ from sources.models import Base
 
 
 class ShortUrlModel(Base):
-    __tablename__ = "short_urls"
+    __tablename__ = 'short_urls'
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-
-    slug: Mapped[str]
+    slug: Mapped[str] = mapped_column(primary_key=True)
     source_url: Mapped[str]
-
-    visitors: Mapped[int] = mapped_column(server_default=text("0"))
+    visitors: Mapped[int] = mapped_column(server_default=text('0'))

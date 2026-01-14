@@ -8,4 +8,4 @@ RUN pip install uv && uv pip install --system --no-cache-dir -r requirements.txt
 WORKDIR /code
 COPY . /code
 
-CMD ["uvicorn", "sources.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "sources.app"]

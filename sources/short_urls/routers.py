@@ -3,53 +3,45 @@ from fastapi.responses import RedirectResponse
 
 from sources.dependencies import Session
 from sources.short_urls.exceptions import GenerateSlugException
-from sources.short_urls.schemas import CreateShortUrlRequestSchema, ShortUrlSchema
+from sources.short_urls.repositories import ShortUrlRepository
+from sources.short_urls.schemas import ShortUrlSchema
 from sources.short_urls.services import ShortUrlService
 
-router = APIRouter()
+router = APIRouter(prefix='/short-urls', tags=['Короткие URL'])
 
 
-@router.get(path="/short-urls/{slug}/", summary="Короткие URL", description="Перенаправление по SLUG")
-async def redirect_by_slug(slug: str, session: Session):
-    service = ShortUrlService(session=session)
-    domain = await service.get(slug=slug, as_visitor=True)
-    response = RedirectResponse(url=domain.source_url, status_code=status.HTTP_302_FOUND)
-    return response
+@router.get(path='/{slug}', summary='Перенаправление по короткому URL')
+async def redirect_by_slug(slug: str, session: Session) -> RedirectResponse:
+    repository = ShortUrlRepository(session=session)
+    service = ShortUrlService(repository=repository)
+
+    short_url = await service.get(slug=slug)
+    await service.visit(short_url=short_url)
+
+    return RedirectResponse(url=short_url.source_url, status_code=status.HTTP_302_FOUND)
 
 
-@router.get(path="/short-urls/", summary="Короткие URL", description="Получение коротких URL")
+@router.get(path='/', summary='Получение коротких URL')
 async def get_short_urls(session: Session) -> list[ShortUrlSchema]:
-    service = ShortUrlService(session=session)
-    domains = await service.all()
+    repository = ShortUrlRepository(session=session)
+    service = ShortUrlService(repository=repository)
 
-    schemas = [
-        ShortUrlSchema(
-            source_url=domain.source_url,
-            short_url=domain.short_url,
-            visitors=domain.visitors,
-        )
-        for domain in domains
-    ]
+    short_urls = await service.all()
 
-    return schemas
+    return [ShortUrlSchema.model_validate(obj=short_url) for short_url in short_urls]
 
 
-@router.post(path="/short-urls/", summary="Короткие URL", description="Создание короткого URL")
-async def create_short_url(data: CreateShortUrlRequestSchema, session: Session) -> ShortUrlSchema:
-    service = ShortUrlService(session=session)
+@router.post(path='/', summary='Создание короткого URL')
+async def create_short_url(source_url: str, session: Session) -> ShortUrlSchema:
+    repository = ShortUrlRepository(session=session)
+    service = ShortUrlService(repository=repository)
 
     try:
-        domain = await service.create(source_url=data.source_url)
+        short_url = await service.create(source_url=source_url)
     except GenerateSlugException as exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=exception.message,
         )
 
-    schema = ShortUrlSchema(
-        short_url=domain.short_url,
-        source_url=domain.source_url,
-        visitors=domain.visitors,
-    )
-
-    return schema
+    return ShortUrlSchema.model_validate(obj=short_url)

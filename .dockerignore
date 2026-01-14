@@ -1,0 +1,6 @@
+# Pre-commit
+.precomcache
+
+# Python
+.venv
+venv

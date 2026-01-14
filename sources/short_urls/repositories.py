@@ -1,54 +1,33 @@
+from collections.abc import Sequence
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from sources.short_urls.domains import ShortUrlDomain
 from sources.short_urls.models import ShortUrlModel
 
 
+# TODO: базовый репозиторий нужон, а ещё DJANGO QUERYSET LIKE REPOSITORY!
 class ShortUrlRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def all(self) -> list[ShortUrlDomain]:
+    async def all(self) -> Sequence[ShortUrlModel]:
         statement = select(ShortUrlModel)
-        execute = await self.session.execute(statement=statement)
-        models = execute.scalars()
-        domains = [await self._to_domain(model=model) for model in models]
-        return domains
+        result = await self.session.execute(statement=statement)
+        return result.scalars().all()
 
-    async def get(self, slug: str) -> ShortUrlDomain:
-        statement = select(ShortUrlModel).filter_by(slug=slug)
-        execute = await self.session.execute(statement=statement)
-        model = execute.scalar_one()
-        domain = await self._to_domain(model=model)
-        return domain
+    async def get(self, **kwargs: Any) -> ShortUrlModel:
+        statement = select(ShortUrlModel).filter_by(**kwargs)
+        result = await self.session.execute(statement=statement)
+        return result.scalar_one()
 
-    async def create(self, domain: ShortUrlDomain) -> ShortUrlDomain:
-        model = await self._from_domain(domain=domain)
-        self.session.add(instance=model)
+    async def create(self, **kwargs: Any) -> ShortUrlModel:
+        short_url = ShortUrlModel(**kwargs)
+        self.session.add(instance=short_url)
         await self.session.commit()
-        domain = await self._to_domain(model=model)
-        return domain
+        return short_url
 
-    async def save(self, domain: ShortUrlDomain) -> ShortUrlDomain:
-        model = await self._from_domain(domain=domain)
-        await self.session.merge(instance=model)
+    async def save(self, instance: ShortUrlModel) -> None:
+        await self.session.merge(instance=instance)
         await self.session.commit()
-        domain = await self._to_domain(model=model)
-        return domain
-
-    async def _to_domain(self, model: ShortUrlModel) -> ShortUrlDomain:
-        return ShortUrlDomain(
-            id=model.id,
-            slug=model.slug,
-            source_url=model.source_url,
-            visitors=model.visitors,
-        )
-
-    async def _from_domain(self, domain: ShortUrlDomain) -> ShortUrlModel:
-        return ShortUrlModel(
-            id=domain.id,
-            slug=domain.slug,
-            source_url=domain.source_url,
-            visitors=domain.visitors,
-        )
